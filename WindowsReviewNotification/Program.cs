@@ -21,7 +21,7 @@ namespace WindowsReviewNotification
             var projectPath = Path.GetDirectoryName(Path.GetDirectoryName(executablePath));
             
             var configuration = new ConfigurationBuilder()
-                .SetBasePath(projectPath)
+                .SetBasePath(executablePath)
                 .AddJsonFile("appsettings.json")
                 .Build();
 
@@ -50,11 +50,11 @@ namespace WindowsReviewNotification
 
         static void ShowNotification(string title, string body)
         {
-            var toastXml = ToastNotificationManager.GetTemplateContent(ToastTemplateType.ToastText02);
+            var toastXml = ToastNotificationManager.GetTemplateContent(ToastTemplateType.ToastText03);
 
             // Set the title and body of the toast notification
             var textElements = toastXml.GetElementsByTagName("text");
-            textElements[0].InnerText = title;
+            textElements[0].InnerText = "Новый отзыв\n" + title;
             textElements[1].InnerText = body;
 
             var toast = new ToastNotification(toastXml)
@@ -62,7 +62,7 @@ namespace WindowsReviewNotification
                 ExpirationTime = DateTimeOffset.Now.AddMinutes(5)
             };
 
-            var notifier = ToastNotificationManager.CreateToastNotifier("\t   Новый отзыв");
+            var notifier = ToastNotificationManager.CreateToastNotifier(" ");
             notifier.Show(toast);
         }
         
