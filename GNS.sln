@@ -1,6 +1,6 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WindowsReviewNotification", "WindowsReviewNotification\WindowsReviewNotification.csproj", "{7F2CC5D5-075A-40C5-9041-C6849C24FA78}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GNS", "GNS\GNS.csproj", "{7F2CC5D5-075A-40C5-9041-C6849C24FA78}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

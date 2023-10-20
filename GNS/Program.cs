@@ -3,67 +3,62 @@ using System.Data;
 using System.IO;
 using System.Reflection;
 using System.Threading;
-using Windows.UI.Notifications;
 using Dapper;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Toolkit.Uwp.Notifications;
 using MySql.Data.MySqlClient;
+using Serilog;
 
-namespace WindowsReviewNotification
+namespace GNS
 {
     internal class Program
     {
-        public static DateTime LastNewDate;
+        private static DateTime _lastNewDate;
+        private static readonly ILogger Logger = new LoggerConfiguration()
+            .WriteTo.File("log.txt")
+            .CreateLogger();
         
         public static void Main(string[] args)
         {
-            // Get the path to the directory where the executable is located.
             var executablePath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
             var projectPath = Path.GetDirectoryName(Path.GetDirectoryName(executablePath));
-            
             var configuration = new ConfigurationBuilder()
                 .SetBasePath(executablePath)
                 .AddJsonFile("appsettings.json")
                 .Build();
-
-            var intervalInSeconds = configuration.GetSection("AppSettings")["IntervalInSeconds"] != null
-                ? int.Parse(configuration["AppSettings:IntervalInSeconds"])
-                : 30; // Default value
-
+            
+            Log.Logger = Logger;
             var connectionString = configuration["AppSettings:ConnectionString"];
 
             using (IDbConnection connection = new MySqlConnection(connectionString))
             {
                 try
                 {
+                    Log.Information("Приложение стартанула...");
+
                     while (true)
                     {
                         CheckTable(connection);
-                        Thread.Sleep(TimeSpan.FromSeconds(intervalInSeconds));
+                        Thread.Sleep(TimeSpan.FromSeconds(GetInterval(configuration)));
                     }
                 }
                 catch (MySqlException ex)
                 {
-                    Console.WriteLine("Error: " + ex.Message);
+                    Log.Error("Ошибка: {ErrorMessage}", ex.Message);
+                }
+                catch (Exception ex)
+                {
+                    Log.Error("Ошибка: {ErrorMessage}", ex.Message);
                 }
             }
         }
 
         static void ShowNotification(string title, string body)
         {
-            var toastXml = ToastNotificationManager.GetTemplateContent(ToastTemplateType.ToastText03);
-
-            // Set the title and body of the toast notification
-            var textElements = toastXml.GetElementsByTagName("text");
-            textElements[0].InnerText = "Новый отзыв\n" + title;
-            textElements[1].InnerText = body;
-
-            var toast = new ToastNotification(toastXml)
-            {
-                ExpirationTime = DateTimeOffset.Now.AddMinutes(5)
-            };
-
-            var notifier = ToastNotificationManager.CreateToastNotifier(" ");
-            notifier.Show(toast);
+            new ToastContentBuilder()
+                .AddText("Новый отзыв\n" + title, AdaptiveTextStyle.Header)
+                .AddText(body, AdaptiveTextStyle.Body)
+                .Show();
         }
         
         static void CheckTable(IDbConnection connection)
@@ -77,12 +72,19 @@ namespace WindowsReviewNotification
             
             var result = connection.QueryFirstOrDefault<dynamic>(query);
 
-            if (result.resp_date > LastNewDate)
+            if (result.resp_date > _lastNewDate)
             {
-                LastNewDate = result.resp_date;
+                _lastNewDate = result.resp_date;
                 
                 ShowNotification($"{result.talon} - {result.userName}", $"{result.review}: {result.comment}");
             }
+        }
+
+        static int GetInterval(IConfigurationRoot configuration)
+        {
+            return configuration.GetSection("AppSettings")["IntervalInSeconds"] != null
+                ? int.Parse(configuration["AppSettings:IntervalInSeconds"])
+                : 30; // Default value
         }
     }
 }
